@@ -93,7 +93,7 @@
         <div class="brand-sub">Unified Access Portal</div>
       </div>
     </div>
-    <div class="version">Portal v1.1.1</div>
+    <div class="version">Portal v1.1.2</div>
   </header>
 
   <main>
@@ -132,7 +132,7 @@
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-const PORTAL_VERSION="1.1.1";
+const PORTAL_VERSION="1.1.2";
 const SUPABASE_URL="https://rwxujvpakpemiwkitltk.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_aN_1_fzAV3hR6FmW7FTZGg_6SF0MUHF";
 
@@ -228,7 +228,7 @@ async function loadLauncher(){
   }else{
     grid.innerHTML=enabled.map(p=>{
       const meta=PRODUCT_META[p.product_key]||{icon:"◼",description:""};
-      return `<a class="product" href="${hvBuildSsoUrl(p.base_url,session)}">`
+      return `<a class="product" href="${hvBuildSsoUrl(p.base_url,session)}">
         <div>
           <div class="product-icon">${meta.icon}</div>
           <h3>${p.display_name}</h3>
