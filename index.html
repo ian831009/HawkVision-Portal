@@ -115,7 +115,7 @@
         <div class="brand-sub">Unified Access Portal</div>
       </div>
     </div>
-    <div class="version">Portal v1.1.5</div>
+    <div class="version">Portal v1.1.6</div>
   </header>
 
   <main>
@@ -142,7 +142,7 @@
           <h2 id="welcomeName">歡迎</h2>
           <p id="welcomeAccount"></p>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="switchBtn" class="logout" type="button">切換帳號</button><button id="logoutBtn" class="logout" type="button">登出</button></div>
+        <button id="logoutBtn" class="logout" type="button">登出</button>
       </div>
       <div id="productGrid" class="products"></div>
     </section>
@@ -154,7 +154,7 @@
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-const PORTAL_VERSION="1.1.5";
+const PORTAL_VERSION="1.1.6";
 const SUPABASE_URL="https://rwxujvpakpemiwkitltk.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_aN_1_fzAV3hR6FmW7FTZGg_6SF0MUHF";
 
@@ -291,15 +291,6 @@ $("eyeBtn").addEventListener("click",()=>{
   input.type=input.type==="password"?"text":"password";
   $("eyeBtn").textContent=input.type==="password"?"👁":"🙈";
 });
-$("switchBtn").addEventListener("click",async()=>{
-  await client.auth.signOut({scope:"global"}).catch(()=>{}); hvClearActiveUser();
-  $("productGrid").innerHTML="";
-  $("launcherView").style.display="none";
-  $("loginView").style.display="block";
-  $("account").value="";
-  $("password").value="";
-  $("account").focus();
-});
 $("logoutBtn").addEventListener("click",async()=>{
   await client.auth.signOut({scope:"global"}); hvClearActiveUser();
   $("productGrid").innerHTML="";
@@ -321,23 +312,7 @@ setTimeout(()=>{
   }
 },1500);
 
-async function hvHandleLogoutLanding(){
-  const url=new URL(window.location.href);
-  if(url.searchParams.get("logout")!=="1")return false;
-  await client.auth.signOut({scope:"global"}).catch(()=>{});
-  hvClearActiveUser();
-  $("productGrid").innerHTML="";
-  $("launcherView").style.display="none";
-  $("loginView").style.display="block";
-  $("account").value="";
-  $("password").value="";
-  history.replaceState(null,"",url.pathname);
-  return true;
-}
-(async()=>{
-  const loggedOut=await hvHandleLogoutLanding();
-  if(!loggedOut) await loadLauncher();
-})();
+loadLauncher();
 </script>
 </body>
 </html>
