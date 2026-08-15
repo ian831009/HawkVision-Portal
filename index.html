@@ -93,7 +93,7 @@
         <div class="brand-sub">Unified Access Portal</div>
       </div>
     </div>
-    <div class="version">Portal v1.1.0</div>
+    <div class="version">Portal v1.1.1</div>
   </header>
 
   <main>
@@ -132,26 +132,33 @@
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-const PORTAL_VERSION="1.1.0";
+const PORTAL_VERSION="1.1.1";
 const SUPABASE_URL="https://rwxujvpakpemiwkitltk.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_aN_1_fzAV3hR6FmW7FTZGg_6SF0MUHF";
 
-const HAWKVISION_AUTH_COOKIE="hv-sso-auth-v1";
-const hawkvisionCookieStorage={
-  getItem(key){
-    const prefix=encodeURIComponent(key)+"=";
-    const row=document.cookie.split("; ").find(v=>v.startsWith(prefix));
-    return row?decodeURIComponent(row.slice(prefix.length)):null;
-  },
-  setItem(key,value){
-    document.cookie=`${encodeURIComponent(key)}=${encodeURIComponent(value)}; Domain=.hawkvisionai.com; Path=/; Max-Age=2592000; SameSite=Lax; Secure`;
-  },
-  removeItem(key){
-    document.cookie=`${encodeURIComponent(key)}=; Domain=.hawkvisionai.com; Path=/; Max-Age=0; SameSite=Lax; Secure`;
-  }
-};
 
-const client=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{storage:hawkvisionCookieStorage,storageKey:HAWKVISION_AUTH_COOKIE,persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const HV_ACTIVE_COOKIE="hv-active-user";
+function hvSetActiveUser(userId){
+  document.cookie=`${HV_ACTIVE_COOKIE}=${encodeURIComponent(userId||"")}; Domain=.hawkvisionai.com; Path=/; Max-Age=2592000; SameSite=Lax; Secure`;
+}
+function hvGetActiveUser(){
+  const p=HV_ACTIVE_COOKIE+"=";
+  const row=document.cookie.split("; ").find(v=>v.startsWith(p));
+  return row?decodeURIComponent(row.slice(p.length)):"";
+}
+function hvClearActiveUser(){
+  document.cookie=`${HV_ACTIVE_COOKIE}=; Domain=.hawkvisionai.com; Path=/; Max-Age=0; SameSite=Lax; Secure`;
+}
+function hvBuildSsoUrl(baseUrl,session){
+  if(!session?.access_token||!session?.refresh_token)return baseUrl;
+  const hash=new URLSearchParams({
+    hv_at:session.access_token,
+    hv_rt:session.refresh_token
+  }).toString();
+  return `${baseUrl.replace(/#.*$/,"")}#${hash}`;
+}
+
+const client=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
 
 const PRODUCT_META={
   record_platform:{icon:"📝",description:"牌局記錄、牌靴管理與記錄作業"},
@@ -201,6 +208,7 @@ async function loadLauncher(){
     return;
   }
 
+  hvSetActiveUser(session.user.id);
   const {data,error}=await client.rpc("hv_unified_launcher");
   if(error){
     await client.auth.signOut();
@@ -220,7 +228,7 @@ async function loadLauncher(){
   }else{
     grid.innerHTML=enabled.map(p=>{
       const meta=PRODUCT_META[p.product_key]||{icon:"◼",description:""};
-      return `<a class="product" href="${p.base_url}">
+      return `<a class="product" href="${hvBuildSsoUrl(p.base_url,session)}">`
         <div>
           <div class="product-icon">${meta.icon}</div>
           <h3>${p.display_name}</h3>
@@ -262,7 +270,7 @@ $("eyeBtn").addEventListener("click",()=>{
   $("eyeBtn").textContent=input.type==="password"?"👁":"🙈";
 });
 $("switchBtn").addEventListener("click",async()=>{
-  await client.auth.signOut({scope:"global"}).catch(()=>{});
+  await client.auth.signOut({scope:"global"}).catch(()=>{}); hvClearActiveUser();
   $("productGrid").innerHTML="";
   $("launcherView").style.display="none";
   $("loginView").style.display="block";
@@ -271,7 +279,7 @@ $("switchBtn").addEventListener("click",async()=>{
   $("account").focus();
 });
 $("logoutBtn").addEventListener("click",async()=>{
-  await client.auth.signOut({scope:"global"});
+  await client.auth.signOut({scope:"global"}); hvClearActiveUser();
   $("productGrid").innerHTML="";
   $("launcherView").style.display="none";
   $("loginView").style.display="block";
