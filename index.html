@@ -93,7 +93,7 @@
         <div class="brand-sub">Unified Access Portal</div>
       </div>
     </div>
-    <div class="version">Portal v1.0.0</div>
+    <div class="version">Portal v1.1.0</div>
   </header>
 
   <main>
@@ -120,7 +120,7 @@
           <h2 id="welcomeName">歡迎</h2>
           <p id="welcomeAccount"></p>
         </div>
-        <button id="logoutBtn" class="logout" type="button">登出</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="switchBtn" class="logout" type="button">切換帳號</button><button id="logoutBtn" class="logout" type="button">登出</button></div>
       </div>
       <div id="productGrid" class="products"></div>
     </section>
@@ -132,10 +132,26 @@
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-const PORTAL_VERSION="1.0.0";
+const PORTAL_VERSION="1.1.0";
 const SUPABASE_URL="https://rwxujvpakpemiwkitltk.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_aN_1_fzAV3hR6FmW7FTZGg_6SF0MUHF";
-const client=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+
+const HAWKVISION_AUTH_COOKIE="hv-sso-auth-v1";
+const hawkvisionCookieStorage={
+  getItem(key){
+    const prefix=encodeURIComponent(key)+"=";
+    const row=document.cookie.split("; ").find(v=>v.startsWith(prefix));
+    return row?decodeURIComponent(row.slice(prefix.length)):null;
+  },
+  setItem(key,value){
+    document.cookie=`${encodeURIComponent(key)}=${encodeURIComponent(value)}; Domain=.hawkvisionai.com; Path=/; Max-Age=2592000; SameSite=Lax; Secure`;
+  },
+  removeItem(key){
+    document.cookie=`${encodeURIComponent(key)}=; Domain=.hawkvisionai.com; Path=/; Max-Age=0; SameSite=Lax; Secure`;
+  }
+};
+
+const client=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{storage:hawkvisionCookieStorage,storageKey:HAWKVISION_AUTH_COOKIE,persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 
 const PRODUCT_META={
   record_platform:{icon:"📝",description:"牌局記錄、牌靴管理與記錄作業"},
@@ -245,8 +261,17 @@ $("eyeBtn").addEventListener("click",()=>{
   input.type=input.type==="password"?"text":"password";
   $("eyeBtn").textContent=input.type==="password"?"👁":"🙈";
 });
+$("switchBtn").addEventListener("click",async()=>{
+  await client.auth.signOut({scope:"global"}).catch(()=>{});
+  $("productGrid").innerHTML="";
+  $("launcherView").style.display="none";
+  $("loginView").style.display="block";
+  $("account").value="";
+  $("password").value="";
+  $("account").focus();
+});
 $("logoutBtn").addEventListener("click",async()=>{
-  await client.auth.signOut();
+  await client.auth.signOut({scope:"global"});
   $("productGrid").innerHTML="";
   $("launcherView").style.display="none";
   $("loginView").style.display="block";
