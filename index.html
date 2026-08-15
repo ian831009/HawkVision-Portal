@@ -115,7 +115,7 @@
         <div class="brand-sub">Unified Access Portal</div>
       </div>
     </div>
-    <div class="version">Portal v1.1.6</div>
+    <div class="version">Portal v1.1.7</div>
   </header>
 
   <main>
@@ -154,7 +154,7 @@
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-const PORTAL_VERSION="1.1.6";
+const PORTAL_VERSION="1.1.7";
 const SUPABASE_URL="https://rwxujvpakpemiwkitltk.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_aN_1_fzAV3hR6FmW7FTZGg_6SF0MUHF";
 
@@ -312,7 +312,31 @@ setTimeout(()=>{
   }
 },1500);
 
-loadLauncher();
+async function hvHandleLogoutLanding(){
+  const url=new URL(window.location.href);
+  if(url.searchParams.get("logout")!=="1") return false;
+
+  // 子平台已先執行 global signOut；Portal 再清除自己保留的本地 session。
+  await client.auth.signOut({scope:"local"}).catch(()=>{});
+  await client.auth.signOut({scope:"global"}).catch(()=>{});
+  hvClearActiveUser();
+
+  $("productGrid").innerHTML="";
+  $("launcherView").style.display="none";
+  $("loginView").style.display="block";
+  $("account").value="";
+  $("password").value="";
+  clearLoginMessage();
+
+  // 移除 ?logout=1，避免重新整理時重複執行。
+  history.replaceState(null,"",url.pathname);
+  return true;
+}
+
+(async()=>{
+  const loggedOut=await hvHandleLogoutLanding();
+  if(!loggedOut) await loadLauncher();
+})();
 </script>
 </body>
 </html>
