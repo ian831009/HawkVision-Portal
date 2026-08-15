@@ -1,20 +1,264 @@
 <!doctype html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>正在前往 HawkVision AI</title>
-
-  <meta http-equiv="refresh" content="0; url=https://hawkvisionai.com/">
-
-  <script>
-    window.location.replace("https://hawkvisionai.com/");
-  </script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>HawkVision</title>
+  <link rel="icon" href="favicon.png" />
+  <style>
+    *{box-sizing:border-box}
+    :root{
+      --bg:#08111f;--panel:#0f1c2e;--panel2:#13243a;--text:#f8fafc;--muted:#9fb0c8;
+      --line:rgba(255,255,255,.10);--accent:#3b82f6;--accent2:#60a5fa;--danger:#ef4444;
+      --success:#22c55e
+    }
+    body{
+      margin:0;min-height:100vh;font-family:Arial,"Noto Sans TC",sans-serif;color:var(--text);
+      background:
+        radial-gradient(circle at 15% 5%,rgba(37,99,235,.20),transparent 30%),
+        radial-gradient(circle at 85% 95%,rgba(14,165,233,.13),transparent 30%),
+        var(--bg)
+    }
+    .shell{min-height:100vh;display:flex;flex-direction:column}
+    header{
+      min-height:78px;padding:16px 24px;border-bottom:1px solid var(--line);
+      display:flex;align-items:center;justify-content:space-between;gap:16px;background:rgba(8,17,31,.72);
+      backdrop-filter:blur(14px);position:sticky;top:0;z-index:10
+    }
+    .brand{display:flex;align-items:center;gap:12px}
+    .brand img{width:44px;height:44px;object-fit:contain}
+    .brand-title{font-size:22px;font-weight:800;letter-spacing:.2px}
+    .brand-sub{font-size:12px;color:var(--muted);margin-top:3px}
+    .version{font-size:12px;color:#cbd5e1;border:1px solid var(--line);padding:7px 10px;border-radius:999px}
+    main{width:min(1060px,calc(100% - 32px));margin:auto;padding:38px 0}
+    .card{
+      background:linear-gradient(180deg,rgba(19,36,58,.96),rgba(15,28,46,.96));
+      border:1px solid var(--line);border-radius:22px;box-shadow:0 22px 70px rgba(0,0,0,.30)
+    }
+    #loginView{max-width:500px;margin:0 auto;padding:28px}
+    h1,h2,p{margin-top:0}
+    #loginView h1{font-size:26px;margin-bottom:8px}
+    .lead{color:var(--muted);font-size:14px;line-height:1.7;margin-bottom:24px}
+    label{display:block;font-size:13px;font-weight:700;margin:14px 0 7px}
+    input{
+      width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(--line);
+      background:#0a1626;color:var(--text);font-size:16px;outline:none
+    }
+    input:focus{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(96,165,250,.12)}
+    .pw{display:flex;gap:8px}
+    .pw input{flex:1}
+    button,.product{
+      border:0;border-radius:12px;font-weight:800;cursor:pointer;transition:.18s ease
+    }
+    button:active,.product:active{transform:scale(.985)}
+    .eye{width:50px;background:#1e293b;color:#dbeafe;font-size:18px}
+    .primary{width:100%;margin-top:18px;padding:13px;background:linear-gradient(90deg,#2563eb,#3b82f6);color:white;font-size:15px}
+    .primary:disabled{opacity:.55;cursor:not-allowed}
+    .msg{display:none;margin-top:14px;padding:11px 12px;border-radius:10px;font-size:13px;font-weight:700}
+    .msg.error{display:block;background:rgba(239,68,68,.12);color:#fecaca;border:1px solid rgba(239,68,68,.22)}
+    .msg.success{display:block;background:rgba(34,197,94,.12);color:#bbf7d0;border:1px solid rgba(34,197,94,.22)}
+    #launcherView{display:none}
+    .welcome{padding:24px 26px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+    .welcome h2{margin-bottom:5px;font-size:24px}
+    .welcome p{color:var(--muted);margin:0;font-size:13px}
+    .logout{padding:10px 14px;background:#1e293b;color:#e2e8f0}
+    .products{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+    .product{
+      min-height:190px;padding:22px;text-align:left;color:white;border:1px solid var(--line);
+      background:linear-gradient(145deg,rgba(30,41,59,.90),rgba(15,23,42,.92));
+      display:flex;flex-direction:column;justify-content:space-between;text-decoration:none
+    }
+    .product:hover{border-color:rgba(96,165,250,.65);transform:translateY(-2px);box-shadow:0 16px 32px rgba(0,0,0,.20)}
+    .product-icon{font-size:30px}
+    .product h3{font-size:20px;margin:14px 0 7px}
+    .product p{font-size:13px;line-height:1.6;color:#b8c6d9;margin:0}
+    .enter{margin-top:18px;color:#93c5fd;font-size:13px;font-weight:800}
+    .none{padding:28px;text-align:center;color:var(--muted)}
+    footer{text-align:center;color:#64748b;font-size:11px;padding:20px}
+    @media(max-width:760px){
+      header{padding:13px 16px}.brand-title{font-size:19px}.brand-sub{display:none}
+      main{width:min(100% - 22px,1060px);padding:24px 0}
+      #loginView{padding:22px}.products{grid-template-columns:1fr}
+      .product{min-height:150px}.welcome{padding:19px}
+    }
+  </style>
 </head>
 <body>
-  <p>
-    正在前往
-    <a href="https://hawkvisionai.com/">HawkVision AI</a>……
-  </p>
+<div class="shell">
+  <header>
+    <div class="brand">
+      <img src="hawkvision-logo.png" alt="HawkVision" onerror="this.style.display='none'">
+      <div>
+        <div class="brand-title">HawkVision</div>
+        <div class="brand-sub">Unified Access Portal</div>
+      </div>
+    </div>
+    <div class="version">Portal v1.0.0</div>
+  </header>
+
+  <main>
+    <section id="loginView" class="card">
+      <h1>登入 HawkVision</h1>
+      <p class="lead">登入後，只會顯示目前帳號已取得使用權限的系統。</p>
+
+      <label for="account">帳號</label>
+      <input id="account" autocomplete="username" placeholder="請輸入帳號" />
+
+      <label for="password">密碼</label>
+      <div class="pw">
+        <input id="password" type="password" autocomplete="current-password" placeholder="請輸入密碼" />
+        <button id="eyeBtn" class="eye" type="button">👁</button>
+      </div>
+
+      <div id="loginMsg" class="msg"></div>
+      <button id="loginBtn" class="primary" type="button">登入</button>
+    </section>
+
+    <section id="launcherView">
+      <div class="welcome card">
+        <div>
+          <h2 id="welcomeName">歡迎</h2>
+          <p id="welcomeAccount"></p>
+        </div>
+        <button id="logoutBtn" class="logout" type="button">登出</button>
+      </div>
+      <div id="productGrid" class="products"></div>
+    </section>
+  </main>
+
+  <footer>HawkVision · Secure Unified Access</footer>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const PORTAL_VERSION="1.0.0";
+const SUPABASE_URL="https://rwxujvpakpemiwkitltk.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="sb_publishable_aN_1_fzAV3hR6FmW7FTZGg_6SF0MUHF";
+const client=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+
+const PRODUCT_META={
+  record_platform:{icon:"📝",description:"牌局記錄、牌靴管理與記錄作業"},
+  admin_center:{icon:"⚙️",description:"帳號、層級、額度與平台管理"},
+  analysis_engine:{icon:"📊",description:"HawkVision 分析與模型引擎"}
+};
+
+const $=id=>document.getElementById(id);
+let busy=false;
+
+function showLoginMessage(text,type="error"){
+  const el=$("loginMsg");
+  el.textContent=text;
+  el.className="msg "+type;
+}
+function clearLoginMessage(){
+  $("loginMsg").className="msg";
+  $("loginMsg").textContent="";
+}
+function setBusy(value){
+  busy=value;
+  $("loginBtn").disabled=value;
+  $("loginBtn").textContent=value?"登入中…":"登入";
+}
+function internalCandidates(account){
+  const raw=String(account||"").trim().toLowerCase();
+  if(!raw)return[];
+  if(raw.includes("@"))return[raw];
+  // Existing HawkVision identities currently use two internal email namespaces.
+  return [`${raw}@baccarat.local`,`${raw}@hawkvision.local`];
+}
+async function signInByAccount(account,password){
+  const candidates=internalCandidates(account);
+  let lastError=null;
+  for(const email of candidates){
+    const {data,error}=await client.auth.signInWithPassword({email,password});
+    if(!error&&data?.user)return data;
+    lastError=error;
+  }
+  throw lastError||new Error("登入失敗");
+}
+async function loadLauncher(){
+  const {data:{session}}=await client.auth.getSession();
+  if(!session?.user){
+    $("launcherView").style.display="none";
+    $("loginView").style.display="block";
+    return;
+  }
+
+  const {data,error}=await client.rpc("hv_unified_launcher");
+  if(error){
+    await client.auth.signOut();
+    $("launcherView").style.display="none";
+    $("loginView").style.display="block";
+    showLoginMessage("無法讀取帳號權限，請重新登入");
+    return;
+  }
+
+  $("welcomeName").textContent=`${data?.display_name||data?.account||"使用者"}，歡迎回來`;
+  $("welcomeAccount").textContent=`帳號：${data?.account||"—"}`;
+
+  const enabled=(Array.isArray(data?.products)?data.products:[]).filter(p=>p?.is_enabled===true);
+  const grid=$("productGrid");
+  if(!enabled.length){
+    grid.innerHTML='<div class="card none">目前沒有可使用的系統權限，請聯絡管理員。</div>';
+  }else{
+    grid.innerHTML=enabled.map(p=>{
+      const meta=PRODUCT_META[p.product_key]||{icon:"◼",description:""};
+      return `<a class="product" href="${p.base_url}">
+        <div>
+          <div class="product-icon">${meta.icon}</div>
+          <h3>${p.display_name}</h3>
+          <p>${meta.description}</p>
+        </div>
+        <div class="enter">進入系統 →</div>
+      </a>`;
+    }).join("");
+  }
+
+  $("loginView").style.display="none";
+  $("launcherView").style.display="block";
+}
+async function login(){
+  if(busy)return;
+  const account=$("account").value.trim();
+  const password=$("password").value;
+  clearLoginMessage();
+  if(!account||!password){
+    showLoginMessage("請輸入帳號和密碼");
+    return;
+  }
+  setBusy(true);
+  try{
+    await signInByAccount(account,password);
+    await loadLauncher();
+  }catch{
+    await client.auth.signOut().catch(()=>{});
+    showLoginMessage("登入失敗，請確認帳號或密碼");
+  }finally{
+    setBusy(false);
+  }
+}
+$("loginBtn").addEventListener("click",login);
+$("password").addEventListener("keydown",e=>{if(e.key==="Enter")login()});
+$("eyeBtn").addEventListener("click",()=>{
+  const input=$("password");
+  input.type=input.type==="password"?"text":"password";
+  $("eyeBtn").textContent=input.type==="password"?"👁":"🙈";
+});
+$("logoutBtn").addEventListener("click",async()=>{
+  await client.auth.signOut();
+  $("productGrid").innerHTML="";
+  $("launcherView").style.display="none";
+  $("loginView").style.display="block";
+  $("password").value="";
+});
+client.auth.onAuthStateChange((_event,session)=>{
+  if(!session){
+    $("launcherView").style.display="none";
+    $("loginView").style.display="block";
+  }
+});
+loadLauncher();
+</script>
 </body>
 </html>
