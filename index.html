@@ -115,7 +115,7 @@
         <div class="brand-sub">Unified Access Portal</div>
       </div>
     </div>
-    <div class="version">Portal v1.1.7</div>
+    <div class="version">Portal v1.1.8</div>
   </header>
 
   <main>
@@ -154,7 +154,7 @@
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-const PORTAL_VERSION="1.1.7";
+const PORTAL_VERSION="1.1.8";
 const SUPABASE_URL="https://rwxujvpakpemiwkitltk.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_aN_1_fzAV3hR6FmW7FTZGg_6SF0MUHF";
 
@@ -244,6 +244,21 @@ async function loadLauncher(){
   $("welcomeAccount").textContent=`帳號：${data?.account||"—"}`;
 
   const enabled=(Array.isArray(data?.products)?data.products:[]).filter(p=>p?.is_enabled===true);
+
+  // v1.1.8: 會員只有分析引擎可使用時，不顯示平台選擇，直接進入分析引擎。
+  // 優先使用 launcher 回傳角色；若舊版 launcher 未帶角色，讀取自己的 business_role 作為相容處理。
+  let businessRole=String(data?.business_role||data?.role||data?.role_key||"").trim();
+  if(!businessRole){
+    try{
+      const {data:selfBiz}=await client.from("hv_business_accounts").select("business_role").eq("user_id",session.user.id).maybeSingle();
+      businessRole=String(selfBiz?.business_role||"").trim();
+    }catch(_e){}
+  }
+  if(businessRole==="member" && enabled.length===1 && enabled[0]?.product_key==="analysis_engine"){
+    window.location.replace(hvBuildSsoUrl(enabled[0].base_url,session));
+    return;
+  }
+
   const grid=$("productGrid");
   if(!enabled.length){
     grid.innerHTML='<div class="card none">目前沒有可使用的系統權限，請聯絡管理員。</div>';
