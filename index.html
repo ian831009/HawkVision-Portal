@@ -115,7 +115,7 @@
         <div class="brand-sub">Unified Access Portal</div>
       </div>
     </div>
-    <div class="version">Portal v1.1.8</div>
+    <div class="version">Portal v1.1.9</div>
   </header>
 
   <main>
@@ -154,7 +154,7 @@
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-const PORTAL_VERSION="1.1.8";
+const PORTAL_VERSION="1.1.9";
 const SUPABASE_URL="https://rwxujvpakpemiwkitltk.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_aN_1_fzAV3hR6FmW7FTZGg_6SF0MUHF";
 
@@ -254,7 +254,7 @@ async function loadLauncher(){
       businessRole=String(selfBiz?.business_role||"").trim();
     }catch(_e){}
   }
-  if(businessRole==="member" && enabled.length===1 && enabled[0]?.product_key==="analysis_engine"){
+  if((businessRole==="member" || enabled.length===1) && enabled.length===1 && enabled[0]?.product_key==="analysis_engine"){
     window.location.replace(hvBuildSsoUrl(enabled[0].base_url,session));
     return;
   }
