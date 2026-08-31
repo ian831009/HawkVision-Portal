@@ -58,6 +58,11 @@
     .msg{display:none;margin-top:14px;padding:11px 12px;border-radius:10px;font-size:13px;font-weight:700}
     .msg.error{display:block;background:rgba(239,68,68,.12);color:#fecaca;border:1px solid rgba(239,68,68,.22)}
     .msg.success{display:block;background:rgba(34,197,94,.12);color:#bbf7d0;border:1px solid rgba(34,197,94,.22)}
+    #passwordClaimView{display:none}
+    .claim-actions{display:grid;grid-template-columns:1fr;gap:10px;margin-top:18px}
+    .claim-actions .primary{margin-top:0}
+    .claim-back{width:100%;padding:12px;background:#1e293b;color:#e2e8f0}
+    .claim-hint{color:var(--muted);font-size:13px;line-height:1.65;margin:0 0 18px}
     #launcherView{display:none}
     .welcome{padding:24px 26px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
     .welcome h2{margin-bottom:5px;font-size:24px}
@@ -115,7 +120,7 @@
         <div class="brand-sub">Unified Access Portal</div>
       </div>
     </div>
-    <div class="version">Portal v1.1.9</div>
+    <div class="version">Portal v1.1.10</div>
   </header>
 
   <main>
@@ -136,6 +141,29 @@
       <button id="loginBtn" class="primary" type="button">登入</button>
     </section>
 
+    <section id="passwordClaimView" class="card">
+      <h1>首次登入｜設定新密碼</h1>
+      <p class="claim-hint">第一次登入必須先設定自己的新密碼；設定成功後系統會登出，請使用新密碼重新登入。</p>
+
+      <label for="newPassword">新密碼</label>
+      <div class="pw">
+        <input id="newPassword" type="password" autocomplete="new-password" placeholder="至少 8 個字元" />
+        <button id="newPasswordEye" class="eye" type="button">👁</button>
+      </div>
+
+      <label for="newPassword2">再次輸入新密碼</label>
+      <div class="pw">
+        <input id="newPassword2" type="password" autocomplete="new-password" placeholder="再次輸入新密碼" />
+        <button id="newPasswordEye2" class="eye" type="button">👁</button>
+      </div>
+
+      <div id="claimMsg" class="msg"></div>
+      <div class="claim-actions">
+        <button id="claimSubmitBtn" class="primary" type="button">設定新密碼並重新登入</button>
+        <button id="claimBackBtn" class="claim-back" type="button">返回登入</button>
+      </div>
+    </section>
+
     <section id="launcherView">
       <div class="welcome card">
         <div>
@@ -154,9 +182,10 @@
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-const PORTAL_VERSION="1.1.9";
+const PORTAL_VERSION="1.1.10";
 const SUPABASE_URL="https://rwxujvpakpemiwkitltk.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_aN_1_fzAV3hR6FmW7FTZGg_6SF0MUHF";
+const ADMIN_API="https://hawkvision-admin-api.michael19941009.workers.dev";
 
 
 const HV_ACTIVE_COOKIE="hv-active-user";
@@ -222,11 +251,124 @@ async function signInByAccount(account,password){
   }
   throw lastError||new Error("登入失敗");
 }
+
+function showClaimMessage(text,type="error"){
+  const el=$("claimMsg");
+  el.textContent=text;
+  el.className="msg "+type;
+}
+function clearClaimMessage(){
+  $("claimMsg").className="msg";
+  $("claimMsg").textContent="";
+}
+function showLoginView(){
+  $("passwordClaimView").style.display="none";
+  $("launcherView").style.display="none";
+  $("loginView").style.display="block";
+}
+function showPasswordClaim(){
+  clearClaimMessage();
+  $("loginView").style.display="none";
+  $("launcherView").style.display="none";
+  $("passwordClaimView").style.display="block";
+  $("newPassword").value="";
+  $("newPassword2").value="";
+  $("claimSubmitBtn").disabled=false;
+  $("claimSubmitBtn").textContent="設定新密碼並重新登入";
+  setTimeout(()=>$("newPassword")?.focus(),0);
+}
+async function requiresPasswordClaim(user){
+  if(!user?.id)return false;
+  const {data,error}=await client.from("profiles").select("must_change_password").eq("id",user.id).maybeSingle();
+  if(error)throw error;
+  return data?.must_change_password===true;
+}
+async function returnToLogin(){
+  $("claimBackBtn").disabled=true;
+  try{
+    await client.auth.signOut({scope:"global"}).catch(()=>{});
+  }finally{
+    hvClearActiveUser();
+    showLoginView();
+    $("password").value="";
+    $("claimBackBtn").disabled=false;
+  }
+}
+async function submitPasswordClaim(){
+  const p1=$("newPassword").value||"";
+  const p2=$("newPassword2").value||"";
+  clearClaimMessage();
+  if(p1.length<8){
+    showClaimMessage("新密碼至少需要 8 個字元");
+    return;
+  }
+  if(p1!==p2){
+    showClaimMessage("兩次輸入的新密碼不一致");
+    return;
+  }
+  const {data:{session}}=await client.auth.getSession();
+  if(!session?.access_token){
+    showClaimMessage("登入狀態已失效，請重新登入");
+    return;
+  }
+  const btn=$("claimSubmitBtn");
+  btn.disabled=true;
+  btn.textContent="設定中…";
+  try{
+    const res=await fetch(ADMIN_API+"/claim-password",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":"Bearer "+session.access_token
+      },
+      body:JSON.stringify({new_password:p1})
+    });
+    const d=await res.json().catch(()=>({}));
+    if(!res.ok||!d.ok)throw new Error(d.error||"密碼設定失敗");
+
+    const {data:verify,error:verifyError}=await client.from("profiles")
+      .select("must_change_password")
+      .eq("id",session.user.id)
+      .maybeSingle();
+    if(verifyError)throw verifyError;
+    if(verify?.must_change_password===true){
+      throw new Error("密碼已送出但首次登入狀態尚未解除，請稍後再試");
+    }
+
+    await client.auth.signOut({scope:"global"}).catch(()=>{});
+    hvClearActiveUser();
+    showLoginView();
+    $("password").value="";
+    showLoginMessage("密碼設定成功，請使用新密碼重新登入","success");
+  }catch(e){
+    showClaimMessage(e?.message||String(e));
+    btn.disabled=false;
+    btn.textContent="設定新密碼並重新登入";
+  }
+}
+
 async function loadLauncher(){
   const {data:{session}}=await client.auth.getSession();
   if(!session?.user){
+    $("passwordClaimView").style.display="none";
     $("launcherView").style.display="none";
     $("loginView").style.display="block";
+    return;
+  }
+
+  let mustChange=false;
+  try{
+    mustChange=await requiresPasswordClaim(session.user);
+  }catch(_e){
+    await client.auth.signOut().catch(()=>{});
+    hvClearActiveUser();
+    showLoginView();
+    showLoginMessage("無法確認首次登入狀態，請重新登入");
+    return;
+  }
+  if(mustChange){
+    hvSetActiveUser(session.user.id);
+    showPasswordClaim();
     return;
   }
 
@@ -234,6 +376,7 @@ async function loadLauncher(){
   const {data,error}=await client.rpc("hv_unified_launcher");
   if(error){
     await client.auth.signOut();
+    $("passwordClaimView").style.display="none";
     $("launcherView").style.display="none";
     $("loginView").style.display="block";
     showLoginMessage("無法讀取帳號權限，請重新登入");
@@ -299,6 +442,19 @@ async function login(){
     setBusy(false);
   }
 }
+$("claimSubmitBtn").addEventListener("click",submitPasswordClaim);
+$("claimBackBtn").addEventListener("click",returnToLogin);
+$("newPassword2").addEventListener("keydown",e=>{if(e.key==="Enter")submitPasswordClaim()});
+$("newPasswordEye").addEventListener("click",()=>{
+  const input=$("newPassword");
+  input.type=input.type==="password"?"text":"password";
+  $("newPasswordEye").textContent=input.type==="password"?"👁":"🙈";
+});
+$("newPasswordEye2").addEventListener("click",()=>{
+  const input=$("newPassword2");
+  input.type=input.type==="password"?"text":"password";
+  $("newPasswordEye2").textContent=input.type==="password"?"👁":"🙈";
+});
 $("loginBtn").addEventListener("click",login);
 $("password").addEventListener("keydown",e=>{if(e.key==="Enter")login()});
 $("eyeBtn").addEventListener("click",()=>{
@@ -309,12 +465,14 @@ $("eyeBtn").addEventListener("click",()=>{
 $("logoutBtn").addEventListener("click",async()=>{
   await client.auth.signOut({scope:"global"}); hvClearActiveUser();
   $("productGrid").innerHTML="";
+  $("passwordClaimView").style.display="none";
   $("launcherView").style.display="none";
   $("loginView").style.display="block";
   $("password").value="";
 });
 client.auth.onAuthStateChange((_event,session)=>{
   if(!session){
+    $("passwordClaimView").style.display="none";
     $("launcherView").style.display="none";
     $("loginView").style.display="block";
   }
@@ -337,6 +495,7 @@ async function hvHandleLogoutLanding(){
   hvClearActiveUser();
 
   $("productGrid").innerHTML="";
+  $("passwordClaimView").style.display="none";
   $("launcherView").style.display="none";
   $("loginView").style.display="block";
   $("account").value="";
